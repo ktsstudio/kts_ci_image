@@ -25,4 +25,4 @@ jobs:
         with:
           context: Docker
           push: true
-          tags: ghcr.io/ktsstudio/healthchecks:${{ env.TAG }}
+          tags: ghcr.io/ktsstudio/kts_ci_image:${{ env.TAG }}
