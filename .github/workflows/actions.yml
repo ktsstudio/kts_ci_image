@@ -1,4 +1,4 @@
-name: healthchecks
+name: greenplum_exporter
 
 on:
   push:

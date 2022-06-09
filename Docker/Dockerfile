@@ -1,26 +1,21 @@
-FROM golang:1.17-alpine AS builder
+#alpine build
+FROM golang:1.16.2-alpine AS builder
 
-ENV SOPS_VERSION 3.7.2
+RUN go env -w GO111MODULE=on && go env -w GOPROXY=https://goproxy.cn,https://goproxy.io,direct
 
-RUN apk add --update --no-cache make
+WORKDIR /home
 
-ADD https://github.com/mozilla/sops/archive/v${SOPS_VERSION}.tar.gz /go/src/app/
-RUN tar xzf /go/src/app/v${SOPS_VERSION}.tar.gz -C /go/src/app/
-WORKDIR /go/src/app/sops-${SOPS_VERSION}
-RUN make install
+ADD . .
 
-FROM dtzar/helm-kubectl:latest
+RUN mkdir bin && go mod download && go build -o ./bin/greenplum_exporter
 
-RUN apk add --no-cache \
-        python3 \
-        py3-pip \
-    && apk add terraform --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
-    && pip3 install --upgrade pip \
-    && pip3 install --no-cache-dir \
-        awscli gitpython \
-    && rm -rf /var/cache/apk/* \
-    && curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
-    && mv /tmp/eksctl /usr/local/bin
+# image
+FROM alpine:latest
 
-RUN helm plugin install https://github.com/jkroepke/helm-secrets --version v3.12.0
-COPY --from=builder /go/bin/sops /usr/local/bin/sops
+COPY --from=builder /home/bin/greenplum_exporter /home/greenplum_exporter
+
+EXPOSE 9297
+
+USER root
+
+CMD  [ "/home/greenplum_exporter" , "--log.level=error"]
